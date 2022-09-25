@@ -55,6 +55,7 @@ impl Bar {
 			.with_x11_window_type(vec![glutin::platform::unix::XWindowType::Dock])
 			.with_decorations(false)
 			.with_title(title)
+			.with_position(monitor.position())
 			.with_inner_size(window_size)
 			.with_visible(false);
 
