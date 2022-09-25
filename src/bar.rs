@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::Size;
+use crate::state_update::StateUpdate;
 
 
 pub struct Bar {
@@ -16,6 +17,7 @@ pub struct Bar {
 
 struct State {
 	content_size: Option<egui::Vec2>,
+	desktop_names: Vec<String>,
 }
 
 impl Bar {
@@ -149,12 +151,20 @@ impl Bar {
 		self.ui.on_event(event);
 		self.window.window().request_redraw()
 	}
+
+	pub fn handle_state(&mut self, state: &StateUpdate) {
+		if self.state.desktop_names != state.desktop_names {
+			self.state.desktop_names = state.desktop_names.clone();
+			self.request_redraw();
+		}
+	}
 }
 
 impl State {
 	fn new() -> Self {
 		Self {
 			content_size: None,
+			desktop_names: Vec::new(),
 		}
 	}
 
@@ -164,7 +174,11 @@ impl State {
 		egui::CentralPanel::default().show(context, |ui| {
 			log::trace!("available size for panel ui: {:?}", ui.available_size());
 			ui.horizontal_top(|ui| {
-				ui.label("workspaces");
+				for desktop in &self.desktop_names {
+					ui.add_space(3.0);
+					ui.label(desktop);
+					ui.add_space(3.0);
+				}
 				ui.add_space(10.0);
 				ui.label("Layout");
 				ui.add_space(10.0);

@@ -5,6 +5,8 @@ mod bar;
 use bar::Bar;
 
 mod logging;
+mod state_update;
+mod x11;
 
 #[derive(clap::Parser)]
 #[clap(setting = clap::AppSettings::DeriveDisplayOrder)]
@@ -85,9 +87,18 @@ fn main() {
 fn do_main(options: Options) -> Result<(), ()> {
 	logging::init(module_path!(), &[], options.verbose as i8 - options.quiet as i8);
 
-	let mut event_loop = glutin::event_loop::EventLoopBuilder::new().build();
+	let wm_info = x11::WindowManagerInfo::new()?;
+
+	let mut event_loop = glutin::event_loop::EventLoopBuilder::with_user_event().build();
 	let mut bar = Bar::new(&event_loop, "mbar", options.screen, options.width, options.height)?;
 	bar.window().set_visible(true);
+
+	std::thread::spawn({
+		let event_loop = event_loop.create_proxy();
+		move || {
+			wm_info.run(&event_loop).ok();
+		}
+	});
 
 	let exit_code = event_loop.run_return(|event, _event_loop, control_flow| {
 		match event {
@@ -111,6 +122,9 @@ fn do_main(options: Options) -> Result<(), ()> {
 			glutin::event::Event::WindowEvent { window_id: _, event } => {
 
 				bar.process_event(&event);
+			},
+			glutin::event::Event::UserEvent(state_update) => {
+				bar.handle_state(&state_update);
 			},
 			_ => (),
 		}
